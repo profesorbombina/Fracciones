@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8f3">
+  <meta name="description" content="Un juego visual para aprender a leer fracciones.">
+  <title>Fracciona | Reto de fracciones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Fracciona, inicio">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>Fracciona</strong><small>RETO EN PISTA</small></span>
+      </a>
+      <div class="topbar-note"><span class="status-dot"></span> APRENDER JUGANDO</div>
+    </header>
+
+    <section class="screen setup-screen is-active" id="inicio" aria-labelledby="setup-title">
+      <div class="intro-copy">
+        <p class="eyebrow">DESAFÍO DE FRACCIONES</p>
+        <h1 id="setup-title">¿Qué fracción <em>ves?</em></h1>
+        <p class="intro-text">Mirá las partes coloreadas, pensá un poquito y escribí la fracción. Cada vuelta te ayuda a entenderla mejor.</p>
+        <div class="fraction-preview" aria-hidden="true">
+          <svg viewBox="0 0 180 180" class="preview-pie">
+            <path d="M90 90 L90 8 A82 82 0 0 1 172 90 Z" fill="#ed648e" />
+            <path d="M90 90 L172 90 A82 82 0 0 1 90 172 Z" fill="#ed648e" />
+            <path d="M90 90 L90 172 A82 82 0 0 1 8 90 Z" fill="#f6cf4d" />
+            <path d="M90 90 L8 90 A82 82 0 0 1 90 8 Z" fill="#70c8c0" />
+            <circle cx="90" cy="90" r="82" fill="none" stroke="#fff" stroke-width="5" />
+            <path d="M90 8V172M8 90H172" stroke="#fff" stroke-width="5" />
+          </svg>
+          <div class="preview-fraction"><strong>2</strong><span></span><strong>4</strong></div>
+          <span class="preview-caption">2 de 4 partes</span>
+          <span class="spark spark-one" aria-hidden="true">✳</span>
+          <span class="spark spark-two" aria-hidden="true">✦</span>
+        </div>
+        <div class="track-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      </div>
+
+      <form class="setup-panel" id="setup-form">
+        <div class="panel-heading">
+          <span class="panel-number">01</span>
+          <div><p class="eyebrow">PREPARAR ACTIVIDAD</p><h2>Configurá tu partida</h2></div>
+        </div>
+        <label for="player-name">Nombre del participante
+          <input id="player-name" name="playerName" type="text" maxlength="24" placeholder="Escribí tu nombre" autocomplete="name" required>
+        </label>
+        <div class="form-grid">
+          <label for="question-count">Cantidad de preguntas
+            <select id="question-count" name="questionCount">
+              <option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option>
+            </select>
+          </label>
+          <fieldset>
+            <legend>Tiempo disponible</legend>
+            <div class="time-fields">
+              <label for="minutes"><span class="sr-only">Minutos</span><input id="minutes" type="number" min="0" max="59" value="2" aria-label="Minutos"></label>
+              <span>:</span>
+              <label for="seconds"><span class="sr-only">Segundos</span><input id="seconds" type="number" min="0" max="59" value="0" aria-label="Segundos"></label>
+            </div>
+          </fieldset>
+        </div>
+        <div class="form-grid extra-settings">
+          <label for="difficulty">Nivel de dificultad
+            <select id="difficulty"><option value="easy">Inicial · hasta 4 partes</option><option value="medium" selected>Intermedio · hasta 8 partes</option><option value="hard">Desafío · hasta 12 partes</option></select>
+          </label>
+          <label class="sound-toggle" for="sound-enabled"><input id="sound-enabled" type="checkbox" checked><span>Activar sonidos</span></label>
+        </div>
+        <p class="rules"><strong>Cómo se juega:</strong> observá el círculo y completá el numerador y el denominador. Tenés hasta 3 respuestas incorrectas por partida.</p>
+        <button class="primary-button" type="submit">Empezar desafío <span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+
+    <section class="screen game-screen" id="game" aria-labelledby="question-title" hidden>
+      <div class="game-meta">
+        <div>
+          <p class="eyebrow">PARTIDA DE <span id="player-label"></span></p>
+          <p class="progress-label">Pregunta <strong id="question-number">1</strong> <span>de</span> <strong id="question-total">10</strong></p>
+        </div>
+        <div class="game-indicators">
+          <div class="score-pill" aria-label="Respuestas correctas"><span aria-hidden="true">★</span><strong id="correct-count">0</strong></div>
+          <div class="timer" id="timer" aria-live="polite"><span aria-hidden="true">◷</span><strong>02:00</strong></div>
+        </div>
+      </div>
+      <div class="progress-track" role="progressbar" aria-label="Progreso de la partida" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><span id="progress-bar"></span></div>
+
+      <div class="question-card">
+        <div class="question-heading">
+          <div><span class="question-tag">MIRÁ EL MODELO</span><h1 id="question-title">¿Qué fracción está coloreada?</h1></div>
+          <span class="question-stamp" aria-hidden="true">¡Vamos!</span>
+        </div>
+        <div class="challenge-layout">
+          <div class="visual-panel">
+            <div class="pie-wrap" id="pie-visual" role="img" aria-label="Modelo de fracción"></div>
+            <p class="visual-caption">Partes iguales, una fracción</p>
+          </div>
+          <form class="answer-form" id="answer-form">
+            <p class="answer-prompt">Completá los dos números</p>
+            <div class="fraction-entry" aria-label="Fracción respuesta">
+              <label for="answer-numerator"><span>Numerador</span><input id="answer-numerator" type="number" min="0" max="12" inputmode="numeric" placeholder="?" required></label>
+              <span class="fraction-line" aria-hidden="true"></span>
+              <label for="answer-denominator"><span>Denominador</span><input id="answer-denominator" type="number" min="2" max="12" inputmode="numeric" placeholder="?" required></label>
+            </div>
+            <button class="hint-button" id="hint-button" type="button" aria-expanded="false" aria-controls="hint-text"><span aria-hidden="true">✳</span> Necesito una pista</button>
+            <p class="hint-text" id="hint-text" hidden>El número de abajo cuenta todas las partes iguales. El de arriba cuenta las partes coloreadas.</p>
+            <button class="primary-button answer-submit" type="submit">Comprobar <span aria-hidden="true">→</span></button>
+            <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+      <div class="mistakes"><span>ERRORES</span><div id="mistake-dots" aria-label="0 de 3 errores"></div><span class="mistake-limit">hasta 3</span></div>
+    </section>
+
+    <section class="screen result-screen" id="results" aria-labelledby="result-title" hidden>
+      <p class="eyebrow">DESAFÍO TERMINADO</p>
+      <h1 id="result-title">¡Gran vuelta, <span id="result-name"></span>!</h1>
+      <p class="result-message" id="result-message"></p>
+      <div class="stats-grid">
+        <div class="stat"><span>Tiempo utilizado</span><strong id="stat-time">00:00</strong></div>
+        <div class="stat"><span>Correctas</span><strong id="stat-correct">0</strong></div>
+        <div class="stat"><span>Incorrectas</span><strong id="stat-incorrect">0</strong></div>
+        <div class="stat highlight"><span>Precisión</span><strong id="stat-rate">0%</strong></div>
+      </div>
+      <div class="result-actions">
+        <button class="primary-button" id="play-again" type="button">Jugar otra vez <span aria-hidden="true">↻</span></button>
+        <button class="text-button" id="back-to-setup" type="button">Cambiar configuración</button>
+      </div>
+      <div class="ranking"><p class="eyebrow">EN ESTE NAVEGADOR</p><h2>Mejores vueltas</h2><ol id="ranking-list"><li>Todavía no hay partidas registradas.</li></ol></div>
+    </section>
+
+    <footer><span>Fracciona · Matemática en movimiento</span><span>Una parte a la vez</span></footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
