@@ -69,6 +69,12 @@
         <label for="player-name">Nombre del participante
           <input id="player-name" name="playerName" type="text" maxlength="24" placeholder="Escribí tu nombre" autocomplete="name" required>
         </label>
+        <label class="mode-setting" for="game-mode">Modalidad de juego
+          <select id="game-mode" name="gameMode">
+            <option value="identify" selected>Identificar la fracción</option>
+            <option value="build">Armar la fracción</option>
+          </select>
+        </label>
         <div class="form-grid">
           <label for="question-count">Cantidad de preguntas
             <select id="question-count" name="questionCount">
@@ -90,7 +96,7 @@
           </label>
           <label class="sound-toggle" for="sound-enabled"><input id="sound-enabled" type="checkbox" checked><span>Activar sonidos</span></label>
         </div>
-        <p class="rules"><strong>Cómo se juega:</strong> observá el círculo y completá el numerador y el denominador. Tenés hasta 3 respuestas incorrectas por partida.</p>
+        <p class="rules" id="mode-rules"><strong>Cómo se juega:</strong> observá el círculo y completá el numerador y el denominador. Tenés hasta 3 respuestas incorrectas por partida.</p>
         <button class="primary-button" type="submit">Empezar desafío <span aria-hidden="true">→</span></button>
       </form>
     </section>
@@ -110,14 +116,16 @@
 
       <div class="question-card">
         <div class="question-heading">
-          <div><span class="question-tag">MIRÁ EL MODELO</span><h1 id="question-title">¿Qué fracción está coloreada?</h1></div>
+          <div><span class="question-tag" id="question-tag">MIRÁ EL MODELO</span><h1 id="question-title">¿Qué fracción está coloreada?</h1></div>
           <span class="question-stamp" aria-hidden="true">¡Vamos!</span>
         </div>
         <div class="challenge-layout">
           <div class="visual-panel">
             <div class="pie-wrap" id="pie-visual" role="img" aria-label="Modelo de fracción"></div>
-            <p class="visual-caption">Partes iguales, una fracción</p>
+            <div class="fraction-blocks" id="fraction-blocks" role="group" aria-label="Bloques de la fracción" hidden></div>
+            <p class="visual-caption" id="visual-caption">Partes iguales, una fracción</p>
           </div>
+          <div class="response-panel">
           <form class="answer-form" id="answer-form">
             <p class="answer-prompt">Completá los dos números</p>
             <div class="fraction-entry" aria-label="Fracción respuesta">
@@ -128,8 +136,19 @@
             <button class="hint-button" id="hint-button" type="button" aria-expanded="false" aria-controls="hint-text"><span aria-hidden="true">✳</span> Necesito una pista</button>
             <p class="hint-text" id="hint-text" hidden>El número de abajo cuenta todas las partes iguales. El de arriba cuenta las partes coloreadas.</p>
             <button class="primary-button answer-submit" type="submit">Comprobar <span aria-hidden="true">→</span></button>
-            <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
           </form>
+          <div class="builder-form" id="builder-form" hidden>
+            <p class="answer-prompt">Construí la fracción indicada</p>
+            <div class="target-fraction"><span>Fracción objetivo</span><strong id="target-numerator">1</strong><i></i><strong id="target-denominator">2</strong></div>
+            <div class="block-controls" aria-label="Cantidad de bloques">
+              <button class="block-adjust" id="remove-block" type="button" aria-label="Quitar un bloque">−</button>
+              <output id="block-count" aria-live="polite">0 bloques</output>
+              <button class="block-adjust" id="add-block" type="button" aria-label="Agregar un bloque">+</button>
+            </div>
+            <button class="primary-button answer-submit" id="check-builder" type="button">Comprobar <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+          </div>
         </div>
       </div>
       <div class="mistakes"><span>ERRORES</span><div id="mistake-dots" aria-label="0 de 3 errores"></div><span class="mistake-limit">hasta 3</span></div>

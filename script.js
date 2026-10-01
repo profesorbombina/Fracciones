@@ -1,6 +1,6 @@
 const state = {
   questions: [], current: 0, correct: 0, incorrect: 0, elapsed: 0, remaining: 0,
-  interval: null, feedbackTimeout: null, locked: false, finished: false, config: {}, audio: null
+  interval: null, feedbackTimeout: null, locked: false, finished: false, config: {}, audio: null, blocks: []
 };
 
 const $ = (id) => document.getElementById(id);
@@ -112,6 +112,7 @@ function updateMistakes() {
 
 function renderQuestion() {
   const question = state.questions[state.current];
+  const isBuildMode = state.config.mode === 'build';
   state.locked = false;
   $('question-number').textContent = state.current + 1;
   $('question-total').textContent = state.questions.length;
@@ -120,18 +121,62 @@ function renderQuestion() {
   progressTrack.setAttribute('aria-valuemax', String(state.questions.length));
   progressTrack.setAttribute('aria-valuenow', String(state.current + 1));
   $('correct-count').textContent = state.correct;
-  $('pie-visual').setAttribute('aria-label', `Círculo dividido en ${question.denominator} partes iguales, con algunas partes coloreadas.`);
-  $('pie-visual').innerHTML = createPieSvg(question.numerator, question.denominator);
+  $('question-tag').textContent = isBuildMode ? 'ARMÁ LA FRACCIÓN' : 'MIRÁ EL MODELO';
+  $('question-title').textContent = isBuildMode ? '¿Podés construirla?' : '¿Qué fracción está coloreada?';
+  $('answer-form').hidden = isBuildMode;
+  $('builder-form').hidden = !isBuildMode;
+  $('pie-visual').hidden = isBuildMode;
+  $('fraction-blocks').hidden = !isBuildMode;
+  $('visual-caption').textContent = isBuildMode ? 'Tocá cada bloque para pintarlo' : 'Partes iguales, una fracción';
+  if (isBuildMode) {
+    $('target-numerator').textContent = question.numerator;
+    $('target-denominator').textContent = question.denominator;
+    state.blocks = [];
+    renderBlocks();
+  } else {
+    $('pie-visual').setAttribute('aria-label', `Círculo dividido en ${question.denominator} partes iguales, con algunas partes coloreadas.`);
+    $('pie-visual').innerHTML = createPieSvg(question.numerator, question.denominator);
+  }
   $('feedback').textContent = '';
   $('feedback').className = 'feedback';
   $('answer-numerator').value = '';
   $('answer-denominator').value = '';
   $('answer-numerator').max = question.denominator;
   $('answer-denominator').max = question.denominator;
-  $('answer-numerator').focus({ preventScroll: true });
+  if (!isBuildMode) $('answer-numerator').focus({ preventScroll: true });
   $('hint-button').setAttribute('aria-expanded', 'false');
   $('hint-text').hidden = true;
   $('answer-form').querySelector('button[type="submit"]').disabled = false;
+  $('check-builder').disabled = false;
+  $('add-block').disabled = false;
+  $('remove-block').disabled = state.blocks.length === 0;
+  if (isBuildMode) $('add-block').focus({ preventScroll: true });
+}
+
+function renderBlocks() {
+  const blocks = $('fraction-blocks');
+  while (blocks.children.length > state.blocks.length) blocks.lastElementChild.remove();
+  while (blocks.children.length < state.blocks.length) {
+    const block = document.createElement('button');
+    block.type = 'button';
+    block.addEventListener('click', () => {
+      if (state.locked) return;
+      const index = Number(block.dataset.index);
+      state.blocks[index] = !state.blocks[index];
+      renderBlocks();
+    });
+    blocks.append(block);
+  }
+  Array.from(blocks.children).forEach((block, index) => {
+    const isPainted = state.blocks[index];
+    block.dataset.index = index;
+    block.className = `fraction-block${isPainted ? ' painted' : ''}`;
+    block.setAttribute('aria-pressed', String(isPainted));
+    block.setAttribute('aria-label', `Bloque ${index + 1}${isPainted ? ', pintado' : ', sin pintar'}`);
+  });
+  $('block-count').textContent = `${state.blocks.length} ${state.blocks.length === 1 ? 'bloque' : 'bloques'}`;
+  $('remove-block').disabled = state.locked || state.blocks.length === 0;
+  $('add-block').disabled = state.locked || state.blocks.length >= 24;
 }
 
 function playTone(isCorrect) {
@@ -140,15 +185,20 @@ function playTone(isCorrect) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
     state.audio = state.audio || new AudioContextClass();
-    const oscillator = state.audio.createOscillator();
-    const gain = state.audio.createGain();
-    oscillator.frequency.value = isCorrect ? 660 : 190;
-    oscillator.type = 'sine';
-    gain.gain.value = 0.035;
-    oscillator.connect(gain);
-    gain.connect(state.audio.destination);
-    oscillator.start();
-    oscillator.stop(state.audio.currentTime + 0.13);
+    const notes = isCorrect ? [660, 880] : [240, 150];
+    notes.forEach((frequency, index) => {
+      const oscillator = state.audio.createOscillator();
+      const gain = state.audio.createGain();
+      const startAt = state.audio.currentTime + index * 0.13;
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+      gain.gain.setValueAtTime(0.035, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.12);
+      oscillator.connect(gain);
+      gain.connect(state.audio.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + 0.13);
+    });
   } catch {
     return;
   }
@@ -161,16 +211,40 @@ function answerQuestion(event) {
   const numerator = Number($('answer-numerator').value);
   const denominator = Number($('answer-denominator').value);
   const isCorrect = numerator === question.numerator && denominator === question.denominator;
+  submitAnswer(
+    isCorrect,
+    `¡Correcto! ${question.numerator} de ${question.denominator} partes iguales están coloreadas.`,
+    `Casi. El denominador ${question.denominator} cuenta todas las partes; el numerador ${question.numerator}, las coloreadas.`
+  );
+}
+
+function checkBuilderAnswer() {
+  if (state.locked || state.finished) return;
+  const question = state.questions[state.current];
+  const paintedCount = state.blocks.filter(Boolean).length;
+  const isCorrect = state.blocks.length === question.denominator && paintedCount === question.numerator;
+  const message = `Pintaste ${paintedCount} de ${state.blocks.length} bloques. La fracción objetivo es ${question.numerator}/${question.denominator}.`;
+  submitAnswer(
+    isCorrect,
+    `¡Muy bien! Construiste ${question.numerator}/${question.denominator}.`,
+    message
+  );
+}
+
+function submitAnswer(isCorrect, successMessage, errorMessage) {
   state.locked = true;
   $('answer-form').querySelector('button[type="submit"]').disabled = true;
+  $('check-builder').disabled = true;
+  $('add-block').disabled = true;
+  $('remove-block').disabled = true;
 
   if (isCorrect) {
     state.correct += 1;
-    $('feedback').textContent = `¡Correcto! ${question.numerator} de ${question.denominator} partes iguales están coloreadas.`;
+    $('feedback').textContent = successMessage;
     $('feedback').className = 'feedback correct';
   } else {
     state.incorrect += 1;
-    $('feedback').textContent = `Casi. El denominador ${question.denominator} cuenta todas las partes; el numerador ${question.numerator}, las coloreadas.`;
+    $('feedback').textContent = errorMessage;
     $('feedback').className = 'feedback incorrect';
     updateMistakes();
   }
@@ -229,7 +303,7 @@ function startGame(event) {
     return;
   }
   $('seconds').setCustomValidity('');
-  state.config = { name: $('player-name').value.trim(), count: Number($('question-count').value), totalTime: minutes * 60 + seconds, difficulty: $('difficulty').value };
+  state.config = { name: $('player-name').value.trim(), count: Number($('question-count').value), totalTime: minutes * 60 + seconds, difficulty: $('difficulty').value, mode: $('game-mode').value };
   state.questions = makeQuestions(state.config.count, state.config.difficulty);
   state.current = 0;
   state.correct = 0;
@@ -238,6 +312,7 @@ function startGame(event) {
   state.remaining = state.config.totalTime;
   state.finished = false;
   state.locked = false;
+  state.blocks = [];
   $('player-label').textContent = state.config.name.toUpperCase();
   $('timer').querySelector('strong').textContent = formatTime(state.remaining);
   $('timer').classList.remove('warning');
@@ -249,6 +324,22 @@ function startGame(event) {
 
 $('setup-form').addEventListener('submit', startGame);
 $('answer-form').addEventListener('submit', answerQuestion);
+$('add-block').addEventListener('click', () => {
+  if (state.locked || state.blocks.length >= 24) return;
+  state.blocks.push(false);
+  renderBlocks();
+});
+$('remove-block').addEventListener('click', () => {
+  if (state.locked || !state.blocks.length) return;
+  state.blocks.pop();
+  renderBlocks();
+});
+$('check-builder').addEventListener('click', checkBuilderAnswer);
+$('game-mode').addEventListener('change', () => {
+  $('mode-rules').innerHTML = $('game-mode').value === 'build'
+    ? '<strong>Cómo se juega:</strong> recibí una fracción, creá la cantidad de bloques que quieras y pintá los que creas necesarios. Se comprueban las dos cantidades al final. Tenés hasta 3 errores.'
+    : '<strong>Cómo se juega:</strong> observá el círculo y completá el numerador y el denominador. Tenés hasta 3 respuestas incorrectas por partida.';
+});
 $('hint-button').addEventListener('click', () => {
   const isExpanded = $('hint-button').getAttribute('aria-expanded') === 'true';
   $('hint-button').setAttribute('aria-expanded', String(!isExpanded));
